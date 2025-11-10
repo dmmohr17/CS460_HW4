@@ -57,7 +57,7 @@ class Locomotion(Node):
             return min(range) if range else float('inf')
         arr = msg.ranges[-135:]+msg.ranges[:-135]
         msg.ranges = arr[0:271]
-        msg.ranges = [5.0 if x == 0.0 else (x*self.distance_multiplier) for x in msg.ranges]
+        msg.ranges = [5.0*distance_multiplier if x == 0.0 else (x*self.distance_multiplier) for x in msg.ranges]
         # self.get_logger().info(msg.ranges)
         # self.get_logger().info(msg.ranges)
         # self.get_logger().info(msg.crash)
