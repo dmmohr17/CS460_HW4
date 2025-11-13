@@ -33,7 +33,10 @@ class Locomotion(Node):
         self.tick = 0
         self.previous_right = float('inf')
         self.previous_left = float('inf')
-        self.state = "following-wall"
+        self.state = "spinning" # changed from following-wall
+        self.prev_state = "following-wall"
+        self.last_spin = 0
+        self.spin_clock = 0
 
         # Laser scan data
         self.front_distance = float('inf')
@@ -50,6 +53,10 @@ class Locomotion(Node):
     # Sensor callback
     def listener_callback(self, msg: LaserScan):
 
+        # spinning is handled in timer_callback, so skip listener if spinning
+        if(self.state == "spinning"):
+            return
+        
         twist = Twist()
 
         def filter_vals(range):
@@ -57,7 +64,7 @@ class Locomotion(Node):
             return min(range) if range else float('inf')
         arr = msg.ranges[-135:]+msg.ranges[:-135]
         msg.ranges = arr[0:271]
-        msg.ranges = [5.0*distance_multiplier if x == 0.0 else (x*self.distance_multiplier) for x in msg.ranges]
+        msg.ranges = [5.0*self.distance_multiplier if x == 0.0 else (x*self.distance_multiplier) for x in msg.ranges]
         # self.get_logger().info(msg.ranges)
         # self.get_logger().info(msg.ranges)
         # self.get_logger().info(msg.crash)
@@ -156,6 +163,26 @@ class Locomotion(Node):
     # Timer callback
     def timer_callback(self):
         self.tick += 1
+        self.last_spin += 1
+
+        # set spin state every 5 seconds (every 500 ticks)
+        if(self.last_spin == 500 and self.state != "spinning"):
+            self.prev_state = self.state
+            self.state = "spinning"
+            self.spin_clock = 0
+
+        # spin state logic
+        if(self.state == "spinning"):
+            twist = Twist()
+            twist.linear.x = 0.0
+            twist.angular.z = 1.5 # tune this if spinning is off
+            self.spin_clock += 1
+            self.pub.publish(twist)
+
+            # after (estimated) 360 spin is complete
+            if(self.spin_clock > 300):
+                self.last_spin = 0
+                self.state = self.prev_state
 
 def main(args=None):
     rclpy.init(args=args)
@@ -167,7 +194,7 @@ def main(args=None):
     # Destroy the node explicitly
     # (optional - otherwise it will be done automatically
     # when the garbage collector destroys the node object)
-    minimal_subscriber.destroy_node()
+    tb3_locomotion.destroy_node()
 
     rclpy.shutdown()
 
