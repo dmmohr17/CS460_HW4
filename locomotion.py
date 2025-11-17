@@ -44,9 +44,9 @@ class Locomotion(Node):
         self.right_distance = float('inf')
 
         # Multipliers to make conversion easier
-        self.distance_multiplier = 3
-        self.linear_speed_multiplier = 3
-        self.angular_speed_multiplier = 3
+        self.distance_multiplier = 1.6
+        self.linear_speed_multiplier = 5.5
+        self.angular_speed_multiplier = 3.5
 
         self.move_cmd = Twist()
 
@@ -180,8 +180,11 @@ class Locomotion(Node):
             self.pub.publish(twist)
 
             # after (estimated) 360 spin is complete
-            if(self.spin_clock > 300):
+            if(self.spin_clock > 370):
                 self.last_spin = 0
+                twist.linear.x = 0.0
+                twist.angular.z = 1.0   
+                self.pub.publish(twist)
                 self.state = self.prev_state
 
 def main(args=None):
